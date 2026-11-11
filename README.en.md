@@ -4,7 +4,7 @@
 
 A Windows desktop app that captures audio from any application (process) in real time, transcribes it locally, translates it, and displays the result as a subtitle overlay.
 
-![Screenshot](assets/screenshot.png)
+![Capturing audio from a Chrome tab and showing the translated subtitle overlay](assets/screenshot.png)
 
 - Audio capture: Windows Process Loopback Capture API (`ActivateAudioInterfaceAsync` + `AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK`)
 - Speech recognition: built-in [Whisper.net](https://github.com/sandroandrade/Whisper.net) (no external Python process). The model is downloaded automatically on first launch
@@ -34,6 +34,8 @@ dotnet publish src/OmniAudioTranslator.App/OmniAudioTranslator.App.csproj `
 ```
 
 ## Usage
+
+![Main window](assets/screenshot-ui.png)
 
 1. Launch `OmniAudioTranslator.App.exe`
 2. Click "Select Window" and choose the window whose audio you want to subtitle

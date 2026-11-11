@@ -4,7 +4,7 @@
 
 Windows 上で任意のアプリ（プロセス）の音声だけをリアルタイムに取り込み、ローカル音声認識 → 翻訳して字幕オーバーレイとして表示するデスクトップアプリです。
 
-![スクリーンショット](assets/screenshot.png)
+![Chrome の音声を取り込み、翻訳字幕をオーバーレイ表示している例](assets/screenshot.png)
 
 - 音声キャプチャ: Windows の Process Loopback Capture API（`ActivateAudioInterfaceAsync` + `AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK`）
 - 音声認識: [Whisper.net](https://github.com/sandroandrade/Whisper.net) をアプリに内蔵（Python などの外部プロセス不要）。初回起動時にモデルを自動ダウンロードします
@@ -34,6 +34,8 @@ dotnet publish src/OmniAudioTranslator.App/OmniAudioTranslator.App.csproj `
 ```
 
 ## 使い方
+
+![メインウィンドウ](assets/screenshot-ui.png)
 
 1. `OmniAudioTranslator.App.exe` を起動
 2. 「ウィンドウを選択」から字幕を取りたいアプリのウィンドウを選ぶ
