@@ -13,6 +13,10 @@ A Windows desktop app that captures audio from any application (process) in real
 - UI: Japanese / English
 - Settings and API keys are stored in `%AppData%\OmniAudioTranslator\` (API keys are protected with Windows DPAPI)
 
+## Download
+
+Prebuilt Windows x64 builds are available from [Releases](https://github.com/KAWAchan-jp/OmniAudio-Translator-app/releases/latest) (no .NET runtime installation required).
+
 ## Requirements
 
 - Windows 10 Build 20348 or later / Windows 11 (Process Loopback Capture is required)

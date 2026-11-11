@@ -13,6 +13,10 @@ Windows 上で任意のアプリ（プロセス）の音声だけをリアルタ
 - UI: 日本語 / English 切り替え
 - 設定と API キーは `%AppData%\OmniAudioTranslator\` に保存（API キーは Windows DPAPI で保護）
 
+## ダウンロード
+
+ビルド済みの Windows x64 版は [Releases](https://github.com/KAWAchan-jp/OmniAudio-Translator-app/releases/latest) からダウンロードできます（.NET ランタイムのインストール不要）。
+
 ## 動作環境
 
 - Windows 10 Build 20348 以降 / Windows 11（Process Loopback Capture が必要なため）
