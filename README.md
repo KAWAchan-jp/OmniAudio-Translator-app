@@ -1,24 +1,24 @@
 # OmniAudio Translator
 
-**English** | [日本語](README.ja.md)
+[English](README.en.md) | **日本語**
 
-A Windows desktop app that captures audio from any application (process) in real time, transcribes it locally, translates it, and displays the result as a subtitle overlay.
+Windows 上で任意のアプリ（プロセス）の音声だけをリアルタイムに取り込み、ローカル音声認識 → 翻訳して字幕オーバーレイとして表示するデスクトップアプリです。
 
-![Screenshot](assets/screenshot.png)
+![スクリーンショット](assets/screenshot.png)
 
-- Audio capture: Windows Process Loopback Capture API (`ActivateAudioInterfaceAsync` + `AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK`)
-- Speech recognition: built-in [Whisper.net](https://github.com/sandroandrade/Whisper.net) (no external Python process). The model is downloaded automatically on first launch
-- Translation: Google Translate (free, no API key required) / DeepL / Gemini
-- Display: click-through subtitle overlay (font size, color, and background opacity are configurable)
-- UI: Japanese / English
-- Settings and API keys are stored in `%AppData%\OmniAudioTranslator\` (API keys are protected with Windows DPAPI)
+- 音声キャプチャ: Windows の Process Loopback Capture API（`ActivateAudioInterfaceAsync` + `AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK`）
+- 音声認識: [Whisper.net](https://github.com/sandroandrade/Whisper.net) をアプリに内蔵（Python などの外部プロセス不要）。初回起動時にモデルを自動ダウンロードします
+- 翻訳: Google 翻訳（無料・APIキー不要）/ DeepL / Gemini
+- 表示: クリックスルー可能な字幕オーバーレイ（フォントサイズ・色・背景の不透明度を変更可能）
+- UI: 日本語 / English 切り替え
+- 設定と API キーは `%AppData%\OmniAudioTranslator\` に保存（API キーは Windows DPAPI で保護）
 
-## Requirements
+## 動作環境
 
-- Windows 10 Build 20348 or later / Windows 11 (Process Loopback Capture is required)
-- .NET 8 Desktop Runtime (the .NET 8 SDK is required to build)
+- Windows 10 Build 20348 以降 / Windows 11（Process Loopback Capture が必要なため）
+- .NET 8 Desktop Runtime（ビルドには .NET 8 SDK）
 
-## Build
+## ビルド
 
 ```powershell
 git clone https://github.com/KAWAchan-jp/OmniAudio-Translator-app.git
@@ -26,34 +26,34 @@ cd OmniAudio-Translator-app
 dotnet build OmniAudioTranslator.sln
 ```
 
-To create a distributable build for Windows:
+Windows 向けに配布用の実行ファイルを作る場合:
 
 ```powershell
 dotnet publish src/OmniAudioTranslator.App/OmniAudioTranslator.App.csproj `
   -c Release -r win-x64 --self-contained false -o publish
 ```
 
-## Usage
+## 使い方
 
-1. Launch `OmniAudioTranslator.App.exe`
-2. Click "Select Window" and choose the window whose audio you want to subtitle
-3. Set the source language, target language, and translation provider (Google Translate needs no API key)
-4. Press "Start"; audio from the target app is transcribed and translated at a fixed interval (6 seconds by default) and shown in the overlay
+1. `OmniAudioTranslator.App.exe` を起動
+2. 「ウィンドウを選択」から字幕を取りたいアプリのウィンドウを選ぶ
+3. 元言語・翻訳先言語・翻訳プロバイダを設定（Google 翻訳は API キー不要）
+4. 「開始」を押すと、対象アプリの音声が一定間隔（既定 6 秒）で認識・翻訳され、オーバーレイに表示されます
 
-To use DeepL or Gemini, enter the corresponding API key in the app.
+DeepL / Gemini を使う場合は、それぞれの API キーを画面に入力してください。
 
-## Tests
+## テスト
 
 ```powershell
 dotnet test tests/OmniAudioTranslator.Core.Tests/OmniAudioTranslator.Core.Tests.csproj
 ```
 
-## Known limitations
+## 既知の制限
 
-- Audio capture works at the process level. If the same executable has multiple windows open, their audio cannot be separated
-- Speech recognition runs locally, but recognized text is sent to the selected provider for translation
-- The subtitle overlay is displayed on screen (it may not appear above exclusive fullscreen applications)
+- 音声キャプチャはプロセス単位です。同じ exe の複数ウィンドウを開いている場合、それらの音声は分離できません
+- 音声認識はローカルで行いますが、翻訳時は認識したテキストを選択したプロバイダへ送信します
+- 字幕オーバーレイは Windows の画面上に表示されます（排他フルスクリーンアプリの上には表示できない場合があります）
 
-## License
+## ライセンス
 
-MIT License (see `LICENSE`)
+MIT License（`LICENSE` を参照）
