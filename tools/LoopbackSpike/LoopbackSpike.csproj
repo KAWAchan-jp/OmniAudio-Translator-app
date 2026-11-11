@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows10.0.20348.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.20348.0</TargetPlatformMinVersion>
+    <RootNamespace>LoopbackSpike</RootNamespace>
+    <AssemblyName>LoopbackSpike</AssemblyName>
+    <!-- Linuxコンテナ(Dev Container)でのコンパイル確認・win-x64向けクロスパブリッシュを可能にするため -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <SelfContained>false</SelfContained>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\OmniAudioTranslator.Core\OmniAudioTranslator.Core.csproj" />
+  </ItemGroup>
+
+</Project>

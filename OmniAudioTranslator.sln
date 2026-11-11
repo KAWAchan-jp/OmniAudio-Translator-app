@@ -1,0 +1,66 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{7F0ECE53-9155-4843-95B6-32F5BE76395B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OmniAudioTranslator.Core", "src\OmniAudioTranslator.Core\OmniAudioTranslator.Core.csproj", "{130DADB2-C8FF-4093-AEEB-A383B4088B6F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{5D858247-24DD-48D7-8DF4-387C6EF9587F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OmniAudioTranslator.Core.Tests", "tests\OmniAudioTranslator.Core.Tests\OmniAudioTranslator.Core.Tests.csproj", "{EAB25B6E-A7CF-47BE-AE84-F6C3ECD99D8D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OmniAudioTranslator.App", "src\OmniAudioTranslator.App\OmniAudioTranslator.App.csproj", "{EACEB799-EB3D-478D-BC00-3AABEBF1C3B4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{15A34E36-0044-48E3-BC9C-8CBBCC7BD818}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoopbackSpike", "tools\LoopbackSpike\LoopbackSpike.csproj", "{76A25F9D-80A7-4986-AB60-C371DEA52630}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WhisperSpike", "tools\WhisperSpike\WhisperSpike.csproj", "{FF5FDE48-517F-47B9-81A3-A848BBD99322}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTonePlayer", "tools\TestTonePlayer\TestTonePlayer.csproj", "{523FCCC4-4899-452D-982F-05F5A8DBB22F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{130DADB2-C8FF-4093-AEEB-A383B4088B6F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{130DADB2-C8FF-4093-AEEB-A383B4088B6F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{130DADB2-C8FF-4093-AEEB-A383B4088B6F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{130DADB2-C8FF-4093-AEEB-A383B4088B6F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EAB25B6E-A7CF-47BE-AE84-F6C3ECD99D8D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EAB25B6E-A7CF-47BE-AE84-F6C3ECD99D8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EAB25B6E-A7CF-47BE-AE84-F6C3ECD99D8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EAB25B6E-A7CF-47BE-AE84-F6C3ECD99D8D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EACEB799-EB3D-478D-BC00-3AABEBF1C3B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EACEB799-EB3D-478D-BC00-3AABEBF1C3B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EACEB799-EB3D-478D-BC00-3AABEBF1C3B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EACEB799-EB3D-478D-BC00-3AABEBF1C3B4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{76A25F9D-80A7-4986-AB60-C371DEA52630}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76A25F9D-80A7-4986-AB60-C371DEA52630}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76A25F9D-80A7-4986-AB60-C371DEA52630}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76A25F9D-80A7-4986-AB60-C371DEA52630}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FF5FDE48-517F-47B9-81A3-A848BBD99322}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF5FDE48-517F-47B9-81A3-A848BBD99322}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FF5FDE48-517F-47B9-81A3-A848BBD99322}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FF5FDE48-517F-47B9-81A3-A848BBD99322}.Release|Any CPU.Build.0 = Release|Any CPU
+		{523FCCC4-4899-452D-982F-05F5A8DBB22F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{523FCCC4-4899-452D-982F-05F5A8DBB22F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{523FCCC4-4899-452D-982F-05F5A8DBB22F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{523FCCC4-4899-452D-982F-05F5A8DBB22F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{130DADB2-C8FF-4093-AEEB-A383B4088B6F} = {7F0ECE53-9155-4843-95B6-32F5BE76395B}
+		{EAB25B6E-A7CF-47BE-AE84-F6C3ECD99D8D} = {5D858247-24DD-48D7-8DF4-387C6EF9587F}
+		{EACEB799-EB3D-478D-BC00-3AABEBF1C3B4} = {7F0ECE53-9155-4843-95B6-32F5BE76395B}
+		{76A25F9D-80A7-4986-AB60-C371DEA52630} = {15A34E36-0044-48E3-BC9C-8CBBCC7BD818}
+		{FF5FDE48-517F-47B9-81A3-A848BBD99322} = {15A34E36-0044-48E3-BC9C-8CBBCC7BD818}
+		{523FCCC4-4899-452D-982F-05F5A8DBB22F} = {15A34E36-0044-48E3-BC9C-8CBBCC7BD818}
+	EndGlobalSection
+EndGlobal

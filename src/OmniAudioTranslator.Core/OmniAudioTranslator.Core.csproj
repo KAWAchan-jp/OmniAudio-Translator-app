@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows10.0.20348.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.20348.0</TargetPlatformMinVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- Linuxコンテナ(Dev Container)でのコンパイル確認を可能にするため。実行はWindowsホストでのみ行う -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- プロセス単位WASAPIループバックキャプチャ(ActivateAudioInterfaceAsync等)のP/Invoke定義に使用 -->
+    <PackageReference Include="Vanara.PInvoke.CoreAudio" Version="4.2.1" />
+    <!-- ローカルASR内蔵(Pythonサイドカー不使用)。AllRuntimesはCPU/CUDA/CUDA12/Vulkan等を同梱し、
+         起動時にWhisper.net自身がハードウェアを自動検出して最適なものをロードする(GPUベンダーを問わない) -->
+    <PackageReference Include="Whisper.net" Version="1.9.1" />
+    <PackageReference Include="Whisper.net.AllRuntimes" Version="1.9.1" />
+    <!-- Whisper.netが要求する16kHz WAVへのリサンプルに使用。NAudio.WinForms等のUI依存が無いNAudio.Coreのみ参照する
+         (NAudioメタパッケージはNAudio.WinFormsを含み、Microsoft.WindowsDesktop.App.WindowsFormsへのFrameworkReferenceを
+         引き込んでしまいコンテナ内でのdotnet testが実行不能になるため避ける) -->
+    <PackageReference Include="NAudio.Core" Version="2.3.0" />
+    <!-- APIキーのDPAPI保護に使用(SecretProtector)。Windows専用APIのため非Windowsでは保護をスキップする -->
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+
+</Project>

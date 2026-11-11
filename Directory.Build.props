@@ -1,0 +1,12 @@
+<Project>
+
+  <PropertyGroup>
+    <Version>0.1.3</Version>
+    <Company>OmniAudio Translator</Company>
+    <Product>OmniAudio Translator</Product>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+</Project>

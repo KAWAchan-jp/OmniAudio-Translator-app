@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.20348.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.20348.0</TargetPlatformMinVersion>
+    <UseWPF>true</UseWPF>
+    <!-- Linuxコンテナ(Dev Container)でのコンパイル確認を可能にするため。実行はWindowsホストでのみ行う -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <RootNamespace>OmniAudioTranslator.App</RootNamespace>
+    <AssemblyName>OmniAudioTranslator.App</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OmniAudioTranslator.Core\OmniAudioTranslator.Core.csproj" />
+  </ItemGroup>
+
+</Project>

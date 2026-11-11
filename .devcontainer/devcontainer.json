@@ -1,0 +1,19 @@
+{
+  "name": "OmniAudio Translator Dev",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.csharp"
+      ],
+      "settings": {
+        "dotnet.defaultSolution": "OmniAudioTranslator.sln"
+      }
+    }
+  },
+  "postCreateCommand": "dotnet restore",
+  "remoteUser": "devuser"
+}

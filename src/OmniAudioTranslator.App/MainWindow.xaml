@@ -1,0 +1,82 @@
+<Window x:Class="OmniAudioTranslator.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="OmniAudio Translator" Height="410" Width="520"
+        WindowStartupLocation="CenterScreen">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,8">
+            <TextBlock Text="言語 / Language:" VerticalAlignment="Center" Margin="0,0,4,0" />
+            <ComboBox x:Name="LanguageCombo" Width="110" SelectionChanged="LanguageCombo_SelectionChanged">
+                <ComboBoxItem Content="日本語" Tag="ja" />
+                <ComboBoxItem Content="English" Tag="en" />
+            </ComboBox>
+        </StackPanel>
+
+        <TextBlock Grid.Row="1" x:Name="SelectedWindowText" Margin="0,0,0,12" TextWrapping="Wrap" />
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock x:Name="SourceLanguageLabel" VerticalAlignment="Center" Margin="0,0,4,0" />
+            <ComboBox x:Name="SourceLanguageCombo" Width="110" SelectionChanged="TranslationLanguageCombo_SelectionChanged" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock x:Name="TranslationLabel" VerticalAlignment="Center" Margin="0,0,4,0" />
+            <ComboBox x:Name="TranslationProviderCombo" Width="180" SelectionChanged="TranslationProviderCombo_SelectionChanged" />
+            <TextBlock x:Name="TargetLanguageLabel" VerticalAlignment="Center" Margin="8,0,4,0" />
+            <ComboBox x:Name="TargetLanguageCombo" Width="110" SelectionChanged="TranslationLanguageCombo_SelectionChanged" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="4" Margin="0,0,0,4">
+            <StackPanel x:Name="DeepLApiKeyPanel" Orientation="Horizontal" Visibility="Collapsed" Margin="0,0,0,4">
+                <TextBlock x:Name="DeepLApiKeyLabel" VerticalAlignment="Center" Width="190" />
+                <Grid Width="200">
+                    <PasswordBox x:Name="DeepLApiKeyBox" PasswordChanged="ApiKeyBox_PasswordChanged" />
+                    <TextBox x:Name="DeepLApiKeyPlainBox" Visibility="Collapsed" TextChanged="ApiKeyPlainBox_TextChanged" />
+                </Grid>
+                <CheckBox x:Name="DeepLApiKeyShow" VerticalAlignment="Center" Margin="6,0,0,0"
+                          Checked="ApiKeyShow_Changed" Unchecked="ApiKeyShow_Changed" />
+            </StackPanel>
+            <StackPanel x:Name="GeminiApiKeyPanel" Orientation="Horizontal" Visibility="Collapsed" Margin="0,0,0,4">
+                <TextBlock x:Name="GeminiApiKeyLabel" VerticalAlignment="Center" Width="190" />
+                <Grid Width="200">
+                    <PasswordBox x:Name="GeminiApiKeyBox" PasswordChanged="ApiKeyBox_PasswordChanged" />
+                    <TextBox x:Name="GeminiApiKeyPlainBox" Visibility="Collapsed" TextChanged="ApiKeyPlainBox_TextChanged" />
+                </Grid>
+                <CheckBox x:Name="GeminiApiKeyShow" VerticalAlignment="Center" Margin="6,0,0,0"
+                          Checked="ApiKeyShow_Changed" Unchecked="ApiKeyShow_Changed" />
+            </StackPanel>
+        </StackPanel>
+
+        <StackPanel Grid.Row="5" Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                <TextBlock x:Name="ChunkIntervalLabel" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <Slider x:Name="ChunkIntervalSlider" Width="150" Minimum="2" Maximum="15"
+                        TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                        ValueChanged="ChunkIntervalSlider_ValueChanged" />
+                <TextBlock x:Name="ChunkIntervalValueText" VerticalAlignment="Center" Margin="8,0,0,0" />
+            </StackPanel>
+            <TextBlock x:Name="ChunkIntervalHintText" TextWrapping="Wrap" Foreground="Gray" FontSize="11" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="6" Orientation="Horizontal" Margin="0,0,0,12">
+            <Button x:Name="SelectWindowButton" Width="140" Click="SelectWindowButton_Click" />
+            <Button x:Name="StartButton" Width="80" Margin="8,0,0,0" IsEnabled="False" Click="StartButton_Click" />
+            <Button x:Name="StopButton" Width="80" Margin="8,0,0,0" IsEnabled="False" Click="StopButton_Click" />
+            <Button x:Name="DisplaySettingsButton" Width="90" Margin="8,0,0,0" Click="DisplaySettingsButton_Click" />
+        </StackPanel>
+
+        <TextBlock Grid.Row="7" x:Name="StatusText" Foreground="Gray" TextWrapping="Wrap" />
+    </Grid>
+</Window>

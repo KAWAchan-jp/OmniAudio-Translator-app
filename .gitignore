@@ -1,0 +1,27 @@
+# .NET ビルド成果物
+bin/
+obj/
+*.user
+.vs/
+
+# 実行時設定・秘密情報（公開用テンプレートは config.example.json）
+config.json
+.env
+
+# ログ・統計
+logs/
+*.log
+
+# Whisper.net用モデル（初回起動時に自動ダウンロード）
+Models/
+
+# エディタ
+.idea/
+*.suo
+.vscode/
+
+# ビルド成果物・検証用 publish 出力
+artifacts/
+
+# AI エージェント設定（ローカル）
+.commandcode/
