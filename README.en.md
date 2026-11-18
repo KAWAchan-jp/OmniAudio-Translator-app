@@ -46,6 +46,12 @@ dotnet publish src/OmniAudioTranslator.App/OmniAudioTranslator.App.csproj `
 3. Set the source language, target language, and translation provider (Google Translate needs no API key)
 4. Press "Start"; audio from the target app is transcribed and translated at a fixed interval (6 seconds by default) and shown in the overlay
 
+### Window picker
+
+The list is shown as `[exe.exe]: title`. Register words under "Highlight keywords" to highlight rows whose title or process name contains them (case-insensitive) with a pale yellow background and bold text. Press Enter or click "Add" to register a keyword, and click "×" on a chip to remove it. If no keywords are registered, the list is displayed normally. The settings are saved.
+
+![Window picker](assets/screenshot-window-picker.png)
+
 To use DeepL or Gemini, enter the corresponding API key in the app.
 
 ## Tests
