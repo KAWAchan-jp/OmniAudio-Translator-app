@@ -1,3 +1,5 @@
+using System.Net;
+using System.Text;
 using OmniAudioTranslator.Core.Capture;
 using OmniAudioTranslator.Core.Localization;
 using OmniAudioTranslator.Core.Transcription;
@@ -58,6 +60,12 @@ public sealed class TranslationSessionService : IDisposable
     /// <summary>状態文言が変化するたびに発火する(UIのステータス表示用)。</summary>
     public event Action<string>? StatusChanged;
 
+    /// <summary>
+    /// デバッグ用の詳細エラーが発生するたびに発火する。HTTPステータスや応答本文など、
+    /// ステータス欄には収まらない情報を含む(UIの詳細欄・ログファイル用)。
+    /// </summary>
+    public event Action<string>? ErrorDetailRaised;
+
     public async Task StartAsync(int processId, CancellationToken cancellationToken = default)
     {
         StatusChanged?.Invoke(Strings.Get("session.starting_capture"));
@@ -89,6 +97,12 @@ public sealed class TranslationSessionService : IDisposable
     public void UpdateTranslationProvider(ITranslationProvider? translationProvider) =>
         Volatile.Write(ref _translationProvider, translationProvider);
 
+    /// <summary>
+    /// 発話ありと判定するピーク閾値(%)を更新する。小さい音声を拾いたいときに実行中でも変更でき、
+    /// キャプチャの停止・再開始は不要(次のサンプルから適用される)。
+    /// </summary>
+    public void UpdateVadThreshold(int thresholdPercent) => _chunker.SetVadThresholdPercent(thresholdPercent);
+
     private void OnDataAvailable(byte[] buffer, int count) => _chunker.AddSamples(buffer.AsSpan(0, count));
 
     private void OnCaptureFailed(Exception ex) =>
@@ -97,11 +111,11 @@ public sealed class TranslationSessionService : IDisposable
     // async voidのため、ここから例外が抜けるとプロセスごと落ちる。停止処理と競合して
     // 破棄済みリソースに触れるケース(ObjectDisposedException)で実際にクラッシュしたため、
     // メソッド全体を必ず捕捉する。
-    private async void OnChunkReady(byte[] wavBytes, int peakLevel)
+    private async void OnChunkReady(byte[] wavBytes, int peakLevel, double gainDb)
     {
         try
         {
-            await ProcessChunkAsync(wavBytes).ConfigureAwait(false);
+            await ProcessChunkAsync(wavBytes, peakLevel, gainDb).ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
         {
@@ -109,11 +123,11 @@ public sealed class TranslationSessionService : IDisposable
         }
         catch (Exception ex)
         {
-            StatusChanged?.Invoke(Strings.Format("session.recognition_error", ex.Message));
+            ReportError(Strings.Format("session.recognition_error", ex.Message), BuildErrorDetail("recognition", ex.ToString(), null));
         }
     }
 
-    private async Task ProcessChunkAsync(byte[] wavBytes)
+    private async Task ProcessChunkAsync(byte[] wavBytes, int peakLevel, double gainDb)
     {
         if (_stopped || !await _transcriptionGate.WaitAsync(0).ConfigureAwait(false))
         {
@@ -123,7 +137,11 @@ public sealed class TranslationSessionService : IDisposable
 
         try
         {
-            StatusChanged?.Invoke(Strings.Format("session.recognizing_chunk", wavBytes.Length / 1024));
+            // 増幅した場合は入力が小さかったことを併記する。音声が出ていない・小さいままという
+            // 相談のときに、どこで減衰しているかを利用者が判断できるようにするため。
+            StatusChanged?.Invoke(gainDb >= 1
+                ? Strings.Format("session.recognizing_chunk_amplified", wavBytes.Length / 1024, peakLevel, gainDb)
+                : Strings.Format("session.recognizing_chunk", wavBytes.Length / 1024));
 
             // チャンクごとにスナップショットを取る。UI操作と競合しても1チャンク内の設定は一貫させる。
             string sourceLanguage = Volatile.Read(ref _sourceLanguage);
@@ -156,9 +174,11 @@ public sealed class TranslationSessionService : IDisposable
                 }
                 catch (TranslationProviderException ex)
                 {
-                    StatusChanged?.Invoke(ex.IsRateLimited
-                        ? Strings.Get("session.translation_rate_limited")
-                        : Strings.Format("session.translation_error", ex.Message));
+                    ReportError(
+                        ex.IsRateLimited
+                            ? Strings.Get("session.translation_rate_limited")
+                            : Strings.Format("session.translation_error", ex.Message),
+                        BuildErrorDetail("translation", ex.Message, null));
                 }
             }
 
@@ -178,14 +198,60 @@ public sealed class TranslationSessionService : IDisposable
 
             TranscriptReady?.Invoke(result.Text, translatedText);
         }
+        catch (TranscriptionProviderException ex)
+        {
+            ReportTranscriptionError(ex);
+        }
         catch (Exception ex)
         {
-            StatusChanged?.Invoke(Strings.Format("session.recognition_error", ex.Message));
+            ReportError(
+                Strings.Format("session.recognition_error", ex.Message),
+                BuildErrorDetail("recognition", ex.ToString(), null));
         }
         finally
         {
             _transcriptionGate.Release();
         }
+    }
+
+    /// <summary>ステータス欄の要約と、詳細欄・ログ用の詳細を同時に通知する。</summary>
+    private void ReportError(string summary, string detail)
+    {
+        StatusChanged?.Invoke(summary);
+        ErrorDetailRaised?.Invoke(detail);
+    }
+
+    /// <summary>
+    /// クラウドASRの失敗を、レート制限かどうかで文言を分けつつ詳細付きで通知する。
+    /// 原因(HTTPステータス・応答本文)を残すことで、キー不正や利用上限の切り分けを容易にする。
+    /// </summary>
+    private void ReportTranscriptionError(TranscriptionProviderException ex)
+    {
+        string summary = ex.IsRateLimited
+            ? Strings.Get("session.transcription_rate_limited")
+            : Strings.Format("session.transcription_error", FormatStatusCode(ex.StatusCode), ex.Message);
+
+        ReportError(summary, BuildErrorDetail("transcription", ex.Message, ex.ResponseBody));
+    }
+
+    private static string FormatStatusCode(HttpStatusCode? statusCode) =>
+        statusCode is null ? "-" : ((int)statusCode.Value).ToString();
+
+    /// <summary>UIの詳細欄とログに出す複数行テキストを組み立てる。</summary>
+    private static string BuildErrorDetail(string context, string message, string? responseBody)
+    {
+        var builder = new StringBuilder();
+        builder.Append('[').Append(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")).Append("] [").Append(context).Append(']');
+        builder.AppendLine();
+        builder.Append(message);
+
+        if (!string.IsNullOrWhiteSpace(responseBody) && !message.Contains(responseBody, StringComparison.Ordinal))
+        {
+            builder.AppendLine();
+            builder.Append(Strings.Get("session.detail_body")).Append(' ').Append(responseBody);
+        }
+
+        return builder.ToString();
     }
 
     public void Dispose()

@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using OmniAudioTranslator.App.Views;
 using OmniAudioTranslator.Core.Capture;
+using OmniAudioTranslator.Core.Diagnostics;
 using OmniAudioTranslator.Core.Localization;
 using OmniAudioTranslator.Core.Orchestration;
 using OmniAudioTranslator.Core.Settings;
@@ -50,20 +51,28 @@ public partial class MainWindow : Window
         "translation_provider.gemini",
     ];
 
+    private static readonly string[] TranscriptionProviderKeys =
+    [
+        "transcription_provider.whisper",
+        "transcription_provider.groq",
+    ];
+
     private readonly SettingsStore _settingsStore = new();
 
     private CapturableWindow? _selectedWindow;
     private TranslationSessionService? _session;
     private OverlayWindow? _overlay;
-    private WhisperNetProvider? _transcriptionProvider;
+    private ITranscriptionProvider? _transcriptionProvider;
     private ITranslationProvider? _translationProvider;
     private OverlaySettings _overlaySettings;
     private DisplaySettingsWindow? _displaySettingsWindow;
     private string? _engineInfo;
     private bool _suppressLanguageEvents;
     private bool _suppressChunkIntervalEvents;
+    private bool _suppressVadThresholdEvents;
     private bool _suppressApiKeyEvents;
     private bool _suppressTranslationSelectionEvents = true;
+    private bool _suppressTranscriptionSelectionEvents = true;
 
     public MainWindow()
     {
@@ -82,10 +91,16 @@ public partial class MainWindow : Window
         ChunkIntervalSlider.Value = _settingsStore.LoadChunkMillis() / 1000.0;
         _suppressChunkIntervalEvents = false;
 
+        _suppressVadThresholdEvents = true;
+        VadThresholdSlider.Value = _settingsStore.LoadVadThresholdPercent();
+        _suppressVadThresholdEvents = false;
+
         LoadSavedApiKeys();
         ApplyLocalizedText();
         RestoreTranslationSelections();
         _suppressTranslationSelectionEvents = false;
+        RestoreTranscriptionSelections();
+        _suppressTranscriptionSelectionEvents = false;
         StatusText.Text = Strings.Get("mainwindow.waiting");
     }
 
@@ -146,16 +161,27 @@ public partial class MainWindow : Window
         string? previousSourceTag = (SourceLanguageCombo.SelectedItem as ComboBoxItem)?.Tag as string;
         string? previousTargetTag = (TargetLanguageCombo.SelectedItem as ComboBoxItem)?.Tag as string;
         int previousProviderIndex = TranslationProviderCombo.SelectedIndex;
+        int previousTranscriptionIndex = TranscriptionProviderCombo.SelectedIndex;
+        string? previousGroqModel = (GroqModelCombo.SelectedItem as ComboBoxItem)?.Tag as string;
 
         PopulateLanguageCombo(SourceLanguageCombo, SourceLanguageOptions, previousSourceTag ?? "ja");
         PopulateLanguageCombo(TargetLanguageCombo, TargetLanguageOptions, previousTargetTag ?? "en");
         PopulateTranslationProviderCombo(previousProviderIndex);
+        PopulateTranscriptionProviderCombo(previousTranscriptionIndex);
+        PopulateGroqModelCombo(previousGroqModel ?? GroqTranscriptionProvider.DefaultModel);
 
         SourceLanguageLabel.Text = Strings.Get("mainwindow.label_source_language");
         TranslationLabel.Text = Strings.Get("mainwindow.label_translation");
         TargetLanguageLabel.Text = Strings.Get("mainwindow.label_target_language");
         DeepLApiKeyLabel.Text = Strings.Get("mainwindow.label_api_key_deepl");
         GeminiApiKeyLabel.Text = Strings.Get("mainwindow.label_api_key_gemini");
+        GroqApiKeyLabel.Text = Strings.Get("mainwindow.label_api_key_groq");
+        TranscriptionEngineLabel.Text = Strings.Get("mainwindow.label_transcription_engine");
+        GroqModelLabel.Text = Strings.Get("mainwindow.label_groq_model");
+
+        ErrorDetailExpander.Header = Strings.Get("error_detail.title");
+        CopyErrorButton.Content = Strings.Get("error_detail.copy");
+        ClearErrorButton.Content = Strings.Get("error_detail.clear");
 
         foreach ((_, _, CheckBox show, _) in ApiKeyFields)
         {
@@ -175,11 +201,25 @@ public partial class MainWindow : Window
         ChunkIntervalHintText.Text = Strings.Get("mainwindow.chunk_interval_hint");
         UpdateChunkIntervalValueText();
 
+        VadThresholdLabel.Text = Strings.Get("mainwindow.label_vad_threshold");
+        VadThresholdHintText.Text = Strings.Get("mainwindow.vad_threshold_hint");
+        UpdateVadThresholdValueText();
+
+        ResetChunkIntervalButton.Content = Strings.Format(
+            "mainwindow.reset_to_default", (int)(AudioChunker.DefaultChunkMillis / 1000.0));
+        ResetVadThresholdButton.Content = Strings.Format(
+            "mainwindow.reset_to_default", AudioNormalizer.DefaultVadThresholdPercent);
+        ResetChunkIntervalButton.ToolTip = Strings.Get("mainwindow.reset_chunk_interval_tooltip");
+        ResetVadThresholdButton.ToolTip = Strings.Get("mainwindow.reset_vad_threshold_tooltip");
+
         UpdateTitle();
     }
 
     private void UpdateChunkIntervalValueText() =>
         ChunkIntervalValueText.Text = Strings.Format("mainwindow.chunk_interval_value", (int)ChunkIntervalSlider.Value);
+
+    private void UpdateVadThresholdValueText() =>
+        VadThresholdValueText.Text = Strings.Format("mainwindow.vad_threshold_value", (int)VadThresholdSlider.Value);
 
     private void ChunkIntervalSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
@@ -208,6 +248,44 @@ public partial class MainWindow : Window
         }
     }
 
+    private void VadThresholdSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        // ChunkIntervalSliderと同様、XAML解析中のMinimum設定による発火に耐える必要がある
+        // (未生成のVadThresholdValueTextに触れると起動時にNullReferenceExceptionで落ちる)。
+        if (VadThresholdValueText is null)
+        {
+            return;
+        }
+
+        UpdateVadThresholdValueText();
+
+        if (_suppressVadThresholdEvents)
+        {
+            return;
+        }
+
+        int thresholdPercent = (int)VadThresholdSlider.Value;
+
+        // 実行中なら停止・再開始なしで次のサンプルから反映させる(小さい音声を拾いたい場面で
+        // その場で調整できるようにするため)。
+        _session?.UpdateVadThreshold(thresholdPercent);
+
+        try
+        {
+            _settingsStore.SaveVadThresholdPercent(thresholdPercent);
+        }
+        catch (IOException ex)
+        {
+            StatusText.Text = Strings.Format("mainwindow.vad_threshold_save_failed", ex.Message);
+        }
+    }
+
+    private void ResetChunkIntervalButton_Click(object sender, RoutedEventArgs e) =>
+        ChunkIntervalSlider.Value = AudioChunker.DefaultChunkMillis / 1000.0;
+
+    private void ResetVadThresholdButton_Click(object sender, RoutedEventArgs e) =>
+        VadThresholdSlider.Value = AudioNormalizer.DefaultVadThresholdPercent;
+
     private static void PopulateLanguageCombo(ComboBox combo, (string Key, string Tag)[] options, string preserveTag)
     {
         combo.Items.Clear();
@@ -233,6 +311,31 @@ public partial class MainWindow : Window
             : 0;
     }
 
+    private void PopulateTranscriptionProviderCombo(int preserveIndex)
+    {
+        TranscriptionProviderCombo.Items.Clear();
+        foreach (string key in TranscriptionProviderKeys)
+        {
+            TranscriptionProviderCombo.Items.Add(new ComboBoxItem { Content = Strings.Get(key) });
+        }
+
+        TranscriptionProviderCombo.SelectedIndex = preserveIndex >= 0 && preserveIndex < TranscriptionProviderKeys.Length
+            ? preserveIndex
+            : 0;
+    }
+
+    private void PopulateGroqModelCombo(string preserveModel)
+    {
+        GroqModelCombo.Items.Clear();
+        foreach (string model in GroqTranscriptionProvider.SupportedModels)
+        {
+            GroqModelCombo.Items.Add(new ComboBoxItem { Content = GetGroqModelDisplayName(model), Tag = model });
+        }
+
+        int index = GroqTranscriptionProvider.SupportedModels.ToList().IndexOf(preserveModel);
+        GroqModelCombo.SelectedIndex = index >= 0 ? index : 0;
+    }
+
     /// <summary>保存済みのセレクター状態を復元する。不正な値は既定値へフォールバックする。</summary>
     private void RestoreTranslationSelections()
     {
@@ -240,6 +343,87 @@ public partial class MainWindow : Window
         PopulateLanguageCombo(SourceLanguageCombo, SourceLanguageOptions, sourceLanguage);
         PopulateLanguageCombo(TargetLanguageCombo, TargetLanguageOptions, targetLanguage);
         PopulateTranslationProviderCombo(providerIndex);
+    }
+
+    /// <summary>保存済みの認識エンジン・Groqモデルを復元する。</summary>
+    private void RestoreTranscriptionSelections()
+    {
+        (int providerIndex, string groqModel) = _settingsStore.LoadTranscriptionSelection();
+        PopulateTranscriptionProviderCombo(providerIndex);
+        PopulateGroqModelCombo(groqModel);
+        UpdateTranscriptionPanels();
+    }
+
+    /// <summary>Groq選択時だけモデルとAPIキー欄を表示する。</summary>
+    private void UpdateTranscriptionPanels()
+    {
+        bool isGroq = TranscriptionProviderCombo.SelectedIndex == 1;
+        Visibility visibility = isGroq ? Visibility.Visible : Visibility.Collapsed;
+        GroqModelLabel.Visibility = visibility;
+        GroqModelCombo.Visibility = visibility;
+        GroqModelHintText.Visibility = visibility;
+        GroqApiKeyPanel.Visibility = visibility;
+        UpdateGroqModelHint();
+    }
+
+    private void TranscriptionProviderCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // InitializeComponent()中の発火や、まだパネルが生成されていないタイミングに耐える。
+        if (GroqApiKeyPanel is null)
+        {
+            return;
+        }
+
+        UpdateTranscriptionPanels();
+        SaveTranscriptionSelection();
+    }
+
+    private void GroqModelCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        UpdateGroqModelHint();
+        SaveTranscriptionSelection();
+    }
+
+    /// <summary>選択中のGroqモデルの用途を1行で補足する(高速/高精度の違いが分かるように)。</summary>
+    private void UpdateGroqModelHint()
+    {
+        if (GroqModelHintText is null)
+        {
+            return;
+        }
+
+        GroqModelHintText.Text = GetSelectedGroqModel() switch
+        {
+            "whisper-large-v3" => Strings.Get("groq_model.large_hint"),
+            _ => Strings.Get("groq_model.turbo_hint"),
+        };
+    }
+
+    private static string GetGroqModelDisplayName(string model) => model switch
+    {
+        "whisper-large-v3-turbo" => Strings.Get("groq_model.turbo_label"),
+        "whisper-large-v3" => Strings.Get("groq_model.large_label"),
+        _ => model,
+    };
+
+    private string GetSelectedGroqModel() =>
+        (GroqModelCombo.SelectedItem as ComboBoxItem)?.Tag as string ?? GroqTranscriptionProvider.DefaultModel;
+
+    private void SaveTranscriptionSelection()
+    {
+        if (_suppressTranscriptionSelectionEvents)
+        {
+            return;
+        }
+
+        try
+        {
+            _settingsStore.SaveTranscriptionSelection(TranscriptionProviderCombo.SelectedIndex, GetSelectedGroqModel());
+        }
+        catch (IOException ex)
+        {
+            StatusText.Text = Strings.Format("mainwindow.transcription_save_failed", ex.Message);
+        }
     }
 
     private void UpdateTitle() => Title = _engineInfo is null
@@ -307,7 +491,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            var dialog = new WindowPickerDialog { Owner = this };
+            var dialog = new WindowPickerDialog(_settingsStore) { Owner = this };
             if (dialog.ShowDialog() == true && dialog.SelectedWindow is { } window)
             {
                 _selectedWindow = window;
@@ -330,14 +514,29 @@ public partial class MainWindow : Window
 
         SelectWindowButton.IsEnabled = false;
         StartButton.IsEnabled = false;
+        SetTranscriptionControlsEnabled(false);
         StatusText.Text = Strings.Get("mainwindow.preparing_model");
 
         try
         {
-            var modelManager = new WhisperModelManager();
-            string modelPath = await modelManager.EnsureModelAsync();
-            _transcriptionProvider = new WhisperNetProvider(modelPath);
-            _engineInfo = _transcriptionProvider.RuntimeInfo;
+            if (TranscriptionProviderCombo.SelectedIndex == 1)
+            {
+                // Groq(クラウド)はモデルのダウンロード・GPUを使わないため、ローカルWhisperの準備をスキップする。
+                StatusText.Text = Strings.Get("mainwindow.groq_preparing");
+                string groqApiKey = RequireGroqApiKey();
+                string groqModel = GetSelectedGroqModel();
+                _transcriptionProvider = new GroqTranscriptionProvider(groqApiKey, groqModel);
+                _engineInfo = $"Groq ({groqModel})";
+            }
+            else
+            {
+                var modelManager = new WhisperModelManager();
+                string modelPath = await modelManager.EnsureModelAsync();
+                var whisperProvider = new WhisperNetProvider(modelPath);
+                _transcriptionProvider = whisperProvider;
+                _engineInfo = whisperProvider.RuntimeInfo;
+            }
+
             UpdateTitle();
 
             string sourceLanguage = GetSelectedLanguageCode(SourceLanguageCombo, "auto");
@@ -345,10 +544,16 @@ public partial class MainWindow : Window
             _translationProvider = CreateTranslationProvider();
 
             var capture = new ProcessLoopbackCapture();
-            var chunker = new AudioChunker(capture.SampleRate, capture.Channels, capture.BitsPerSample, (int)ChunkIntervalSlider.Value * 1000);
+            var chunker = new AudioChunker(
+                capture.SampleRate,
+                capture.Channels,
+                capture.BitsPerSample,
+                (int)ChunkIntervalSlider.Value * 1000,
+                (int)VadThresholdSlider.Value);
             _session = new TranslationSessionService(capture, chunker, _transcriptionProvider, _translationProvider, targetLanguage, sourceLanguage);
             _session.TranscriptReady += OnTranscriptReady;
             _session.StatusChanged += OnStatusChanged;
+            _session.ErrorDetailRaised += OnErrorDetailRaised;
 
             _overlay = new OverlayWindow();
             _overlay.ApplySettings(_overlaySettings);
@@ -361,8 +566,11 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             StatusText.Text = Strings.Format("mainwindow.start_failed", ex.Message);
+            ErrorLog.Write("start", ex.Message, ex);
+            AppendErrorDetail($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [start]{Environment.NewLine}{ex}");
             SelectWindowButton.IsEnabled = true;
             StartButton.IsEnabled = true;
+            SetTranscriptionControlsEnabled(true);
         }
     }
 
@@ -370,7 +578,7 @@ public partial class MainWindow : Window
     {
         _session?.Dispose();
         _session = null;
-        _transcriptionProvider?.Dispose();
+        (_transcriptionProvider as IDisposable)?.Dispose();
         _transcriptionProvider = null;
         (_translationProvider as IDisposable)?.Dispose();
         _translationProvider = null;
@@ -383,6 +591,17 @@ public partial class MainWindow : Window
         SelectWindowButton.IsEnabled = true;
         StartButton.IsEnabled = _selectedWindow is not null;
         StopButton.IsEnabled = false;
+        SetTranscriptionControlsEnabled(true);
+    }
+
+    /// <summary>実行中は認識エンジンとGroq設定を変更できないようにする(切替は停止→開始で行う)。</summary>
+    private void SetTranscriptionControlsEnabled(bool enabled)
+    {
+        TranscriptionProviderCombo.IsEnabled = enabled;
+        GroqModelCombo.IsEnabled = enabled;
+        GroqApiKeyBox.IsEnabled = enabled;
+        GroqApiKeyPlainBox.IsEnabled = enabled;
+        GroqApiKeyShow.IsEnabled = enabled;
     }
 
     /// <summary>言語選択コンボの選択項目からTagに設定した言語コードを取得する。</summary>
@@ -415,11 +634,25 @@ public partial class MainWindow : Window
         return apiKey;
     }
 
+    private static string RequireGroqApiKey(PasswordBox box)
+    {
+        string apiKey = box.Password.Trim();
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            throw new InvalidOperationException(Strings.Get("mainwindow.groq_key_required"));
+        }
+
+        return apiKey;
+    }
+
+    private string RequireGroqApiKey() => RequireGroqApiKey(GroqApiKeyBox);
+
     /// <summary>APIキー欄(伏字/平文)とチェックボックスを種別ごとに束ねたもの。</summary>
     private (PasswordBox Masked, TextBox Plain, CheckBox Show, TranslationApiKeyKind Kind)[] ApiKeyFields =>
     [
         (DeepLApiKeyBox, DeepLApiKeyPlainBox, DeepLApiKeyShow, TranslationApiKeyKind.DeepL),
         (GeminiApiKeyBox, GeminiApiKeyPlainBox, GeminiApiKeyShow, TranslationApiKeyKind.Gemini),
+        (GroqApiKeyBox, GroqApiKeyPlainBox, GroqApiKeyShow, TranslationApiKeyKind.Groq),
     ];
 
     /// <summary>保存済みAPIキーを復号して各入力欄へ復元する。</summary>
@@ -528,6 +761,54 @@ public partial class MainWindow : Window
         _overlay?.SetStatus(status);
     });
 
+    /// <summary>
+    /// ASR/翻訳の詳細エラーをログへ残し、詳細欄へ追記して自動展開する。
+    /// 429や401の原因をその場で確認できるようにするためのもの。
+    /// </summary>
+    private void OnErrorDetailRaised(string detail)
+    {
+        ErrorLog.Write("session", detail);
+        AppendErrorDetail(detail);
+    }
+
+    private void AppendErrorDetail(string detail) => Dispatcher.BeginInvoke(() =>
+    {
+        if (!string.IsNullOrEmpty(ErrorDetailBox.Text))
+        {
+            ErrorDetailBox.AppendText(Environment.NewLine + Environment.NewLine);
+        }
+
+        ErrorDetailBox.AppendText(detail);
+        ErrorDetailBox.ScrollToEnd();
+        ErrorDetailExpander.Visibility = Visibility.Visible;
+        ErrorDetailExpander.IsExpanded = true;
+    });
+
+    private void CopyErrorButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrEmpty(ErrorDetailBox.Text))
+        {
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(ErrorDetailBox.Text);
+            StatusText.Text = Strings.Get("error_detail.copied");
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = Strings.Format("mainwindow.start_failed", ex.Message);
+        }
+    }
+
+    private void ClearErrorButton_Click(object sender, RoutedEventArgs e)
+    {
+        ErrorDetailBox.Clear();
+        ErrorDetailExpander.IsExpanded = false;
+        ErrorDetailExpander.Visibility = Visibility.Collapsed;
+    }
+
     private void DisplaySettingsButton_Click(object sender, RoutedEventArgs e)
     {
         if (_displaySettingsWindow is null)
@@ -574,7 +855,7 @@ public partial class MainWindow : Window
         }
 
         _session?.Dispose();
-        _transcriptionProvider?.Dispose();
+        (_transcriptionProvider as IDisposable)?.Dispose();
         (_translationProvider as IDisposable)?.Dispose();
         _overlay?.Close();
         _displaySettingsWindow?.Close();

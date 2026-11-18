@@ -1,3 +1,4 @@
+using OmniAudioTranslator.Core.Capture;
 using OmniAudioTranslator.Core.Localization;
 using OmniAudioTranslator.Core.Settings;
 
@@ -102,6 +103,153 @@ public class SettingsStoreTests
     }
 
     [Fact]
+    public void LoadWindowKeywords_NoFileYet_ReturnsEmpty()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"omniaudio-settings-{Guid.NewGuid()}.json");
+        var store = new SettingsStore(path);
+
+        Assert.Empty(store.LoadWindowKeywords());
+    }
+
+    [Fact]
+    public void SaveThenLoadWindowKeywords_RoundTripsNormalized()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"omniaudio-settings-{Guid.NewGuid()}.json");
+        try
+        {
+            var store = new SettingsStore(path);
+
+            store.SaveWindowKeywords([" Twitch ", "twitch", "", "brave"]);
+
+            Assert.Equal(["Twitch", "brave"], store.LoadWindowKeywords());
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void SaveWindowKeywords_DoesNotClobberOtherSettings()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"omniaudio-settings-{Guid.NewGuid()}.json");
+        try
+        {
+            var store = new SettingsStore(path);
+            store.SaveChunkMillis(3000);
+
+            store.SaveWindowKeywords(["Twitch"]);
+
+            Assert.Equal(3000, store.LoadChunkMillis());
+            Assert.Equal(["Twitch"], store.LoadWindowKeywords());
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void LoadChunkMillis_ZeroInFile_FallsBackToDefault()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"omniaudio-settings-{Guid.NewGuid()}.json");
+        try
+        {
+            File.WriteAllText(path, "{\"ChunkMillis\": 0}");
+            var store = new SettingsStore(path);
+
+            Assert.Equal(AudioChunker.DefaultChunkMillis, store.LoadChunkMillis());
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void LoadVadThresholdPercent_NoFileYet_ReturnsDefault()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"omniaudio-settings-{Guid.NewGuid()}.json");
+        var store = new SettingsStore(path);
+
+        Assert.Equal(AudioNormalizer.DefaultVadThresholdPercent, store.LoadVadThresholdPercent());
+    }
+
+    [Fact]
+    public void SaveThenLoadVadThresholdPercent_RoundTrips()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"omniaudio-settings-{Guid.NewGuid()}.json");
+        try
+        {
+            var store = new SettingsStore(path);
+
+            store.SaveVadThresholdPercent(3);
+
+            Assert.Equal(3, store.LoadVadThresholdPercent());
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void SaveVadThresholdPercent_ClampsOutOfRangeValue()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"omniaudio-settings-{Guid.NewGuid()}.json");
+        try
+        {
+            var store = new SettingsStore(path);
+
+            store.SaveVadThresholdPercent(0);
+
+            Assert.Equal(1, store.LoadVadThresholdPercent());
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void LoadVadThresholdPercent_DoesNotClobberChunkMillis()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"omniaudio-settings-{Guid.NewGuid()}.json");
+        try
+        {
+            var store = new SettingsStore(path);
+            store.SaveChunkMillis(4000);
+
+            store.SaveVadThresholdPercent(5);
+
+            Assert.Equal(4000, store.LoadChunkMillis());
+            Assert.Equal(5, store.LoadVadThresholdPercent());
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
     public void LoadMainWindowPosition_NoFileYet_ReturnsNull()
     {
         string path = Path.Combine(Path.GetTempPath(), $"omniaudio-settings-{Guid.NewGuid()}.json");
@@ -145,6 +293,82 @@ public class SettingsStoreTests
             store.SaveTranslationSelections("ko", "de", 4);
 
             Assert.Equal(("ko", "de", 4), store.LoadTranslationSelections());
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void LoadTranscriptionSelection_NoFileYet_ReturnsWhisperAndTurbo()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"omniaudio-settings-{Guid.NewGuid()}.json");
+        var store = new SettingsStore(path);
+
+        (int providerIndex, string groqModel) = store.LoadTranscriptionSelection();
+
+        Assert.Equal(0, providerIndex);
+        Assert.Equal("whisper-large-v3-turbo", groqModel);
+    }
+
+    [Fact]
+    public void SaveThenLoadTranscriptionSelection_RoundTrips()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"omniaudio-settings-{Guid.NewGuid()}.json");
+        try
+        {
+            var store = new SettingsStore(path);
+
+            store.SaveTranscriptionSelection(1, "whisper-large-v3");
+
+            Assert.Equal((1, "whisper-large-v3"), store.LoadTranscriptionSelection());
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void SaveTranscriptionSelection_InvalidValues_FallBackToDefaults()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"omniaudio-settings-{Guid.NewGuid()}.json");
+        try
+        {
+            var store = new SettingsStore(path);
+
+            store.SaveTranscriptionSelection(9, "unknown-model");
+
+            Assert.Equal((0, "whisper-large-v3-turbo"), store.LoadTranscriptionSelection());
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void SaveTranscriptionSelection_DoesNotClobberApiKeys()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"omniaudio-settings-{Guid.NewGuid()}.json");
+        try
+        {
+            var store = new SettingsStore(path);
+            store.SaveApiKey(TranslationApiKeyKind.Groq, "groq-key");
+
+            store.SaveTranscriptionSelection(1, "whisper-large-v3");
+
+            Assert.Equal("groq-key", store.LoadApiKey(TranslationApiKeyKind.Groq));
         }
         finally
         {

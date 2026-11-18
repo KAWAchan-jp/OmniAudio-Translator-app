@@ -40,6 +40,35 @@ public class LevelMeterTests
     }
 
     [Fact]
+    public void RaisingThreshold_AfterProcessing_AppliesToNextBatch()
+    {
+        var meter = new LevelMeter(thresholdPercent: 2);
+        byte[] quiet = ToLittleEndianBytes((short)(short.MaxValue * 0.05));
+
+        meter.ProcessSamples(quiet);
+        Assert.True(meter.HadSpeech);
+
+        // 実行中に閾値を上げても、次に処理するサンプルから適用される。
+        meter.ThresholdPercent = 20;
+        meter.Reset();
+        meter.ProcessSamples(quiet);
+
+        Assert.False(meter.HadSpeech);
+    }
+
+    [Fact]
+    public void ThresholdPercent_IsClampedToValidRange()
+    {
+        var meter = new LevelMeter();
+
+        meter.ThresholdPercent = 0;
+        Assert.Equal(1, meter.ThresholdPercent);
+
+        meter.ThresholdPercent = 500;
+        Assert.Equal(100, meter.ThresholdPercent);
+    }
+
+    [Fact]
     public void Reset_ClearsState()
     {
         var meter = new LevelMeter();

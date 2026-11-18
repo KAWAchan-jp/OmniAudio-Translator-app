@@ -4,18 +4,31 @@ using OmniAudioTranslator.Core.Localization;
 
 namespace OmniAudioTranslator.Core.Translation;
 
-/// <summary>Gemini API (generateContent, REST)にプロンプトで翻訳を依頼する。</summary>
+/// <summary>
+/// Gemini API (generateContent, REST)にプロンプトで翻訳を依頼する。
+/// 翻訳は短い応答で十分なため、Gemini 4 系では thinkingLevel を既定で LOW にして
+/// レイテンシとコストを抑える(対応値: LOW/MEDIUM/HIGH/XHIGH。既定はHIGH)。
+/// </summary>
 public sealed class GeminiTranslationProvider : ITranslationProvider, IDisposable
 {
+    public const string DefaultModel = "gemini-4-hydrogen";
+    public const string DefaultThinkingLevel = "LOW";
+
     private readonly string _apiKey;
     private readonly string _model;
+    private readonly string _thinkingLevel;
     private readonly HttpClient _httpClient;
     private readonly bool _ownsHttpClient;
 
-    public GeminiTranslationProvider(string apiKey, string model = "gemini-3.5-flash", HttpClient? httpClient = null)
+    public GeminiTranslationProvider(
+        string apiKey,
+        string model = DefaultModel,
+        HttpClient? httpClient = null,
+        string thinkingLevel = DefaultThinkingLevel)
     {
         _apiKey = apiKey;
         _model = model;
+        _thinkingLevel = string.IsNullOrWhiteSpace(thinkingLevel) ? DefaultThinkingLevel : thinkingLevel;
         _ownsHttpClient = httpClient is null;
         _httpClient = httpClient ?? new HttpClient();
     }
@@ -30,6 +43,10 @@ public sealed class GeminiTranslationProvider : ITranslationProvider, IDisposabl
             contents = new[]
             {
                 new { parts = new[] { new { text = prompt } } },
+            },
+            generationConfig = new
+            {
+                thinkingConfig = new { thinkingLevel = _thinkingLevel },
             },
         };
 

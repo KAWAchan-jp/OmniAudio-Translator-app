@@ -17,8 +17,37 @@ public class GeminiTranslationProviderTests
 
         Assert.Equal("こんにちは", result);
         Assert.Contains("key=test-key", handler.LastRequest!.RequestUri!.Query);
-        Assert.Contains("models/gemini-3.5-flash:generateContent", handler.LastRequest.RequestUri!.ToString());
+        Assert.Contains("models/gemini-4-hydrogen:generateContent", handler.LastRequest.RequestUri!.ToString());
         Assert.Contains("Hello", handler.LastRequestBody);
+    }
+
+    [Fact]
+    public async Task TranslateAsync_SendsDefaultLowThinkingLevel()
+    {
+        var handler = new FakeHttpMessageHandler(
+            HttpStatusCode.OK,
+            """{"candidates":[{"content":{"parts":[{"text":"こんにちは"}]}}]}""");
+        using var provider = new GeminiTranslationProvider("test-key", httpClient: new HttpClient(handler));
+
+        await provider.TranslateAsync("Hello", "ja");
+
+        Assert.Contains("\"generationConfig\"", handler.LastRequestBody);
+        Assert.Contains("\"thinkingConfig\"", handler.LastRequestBody);
+        Assert.Contains("\"thinkingLevel\":\"LOW\"", handler.LastRequestBody);
+    }
+
+    [Fact]
+    public async Task TranslateAsync_CustomThinkingLevel_IsUsed()
+    {
+        var handler = new FakeHttpMessageHandler(
+            HttpStatusCode.OK,
+            """{"candidates":[{"content":{"parts":[{"text":"ok"}]}}]}""");
+        using var provider = new GeminiTranslationProvider(
+            "test-key", httpClient: new HttpClient(handler), thinkingLevel: "HIGH");
+
+        await provider.TranslateAsync("Hello", "ja");
+
+        Assert.Contains("\"thinkingLevel\":\"HIGH\"", handler.LastRequestBody);
     }
 
     [Fact]

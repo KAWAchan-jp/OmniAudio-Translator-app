@@ -7,8 +7,22 @@ namespace OmniAudioTranslator.Core.Capture;
 /// 周波数ドメインのピーク検出)を、時間ドメインの振幅ピーク検出に置き換えたもの
 /// (実装計画の移植方針: AnalyserNodeピーク検出→NAudio/生PCMピーク検出への置換)。
 /// </summary>
-public sealed class LevelMeter(int thresholdPercent = 10)
+public sealed class LevelMeter
 {
+    private int _thresholdPercent;
+
+    public LevelMeter(int thresholdPercent = 10) => ThresholdPercent = thresholdPercent;
+
+    /// <summary>
+    /// 発話ありと判定するピーク閾値(%)。キャプチャ中でも変更できるようプロパティにしている
+    /// (変更はUIスレッドから、参照はキャプチャスレッドから行われるがintの読み書きは原子的)。
+    /// </summary>
+    public int ThresholdPercent
+    {
+        get => _thresholdPercent;
+        set => _thresholdPercent = Math.Clamp(value, 1, 100);
+    }
+
     /// <summary>直近のリセット以降に観測した最大レベル(0-100)。</summary>
     public int MaxLevel { get; private set; }
 
@@ -41,7 +55,7 @@ public sealed class LevelMeter(int thresholdPercent = 10)
             MaxLevel = level;
         }
 
-        if (level >= thresholdPercent)
+        if (level >= _thresholdPercent)
         {
             HadSpeech = true;
         }

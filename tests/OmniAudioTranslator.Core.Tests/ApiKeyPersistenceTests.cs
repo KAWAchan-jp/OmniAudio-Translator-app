@@ -14,11 +14,13 @@ public class ApiKeyPersistenceTests
 
         Assert.Equal(string.Empty, store.LoadApiKey(TranslationApiKeyKind.DeepL));
         Assert.Equal(string.Empty, store.LoadApiKey(TranslationApiKeyKind.Gemini));
+        Assert.Equal(string.Empty, store.LoadApiKey(TranslationApiKeyKind.Groq));
     }
 
     [Theory]
     [InlineData(TranslationApiKeyKind.DeepL)]
     [InlineData(TranslationApiKeyKind.Gemini)]
+    [InlineData(TranslationApiKeyKind.Groq)]
     public void SaveThenLoadApiKey_RoundTrips(TranslationApiKeyKind kind)
     {
         string path = NewConfigPath();
@@ -38,10 +40,12 @@ public class ApiKeyPersistenceTests
 
         store.SaveApiKey(TranslationApiKeyKind.DeepL, "deepl-key");
         store.SaveApiKey(TranslationApiKeyKind.Gemini, "gemini-key");
+        store.SaveApiKey(TranslationApiKeyKind.Groq, "groq-key");
 
         var reloaded = new SettingsStore(path);
         Assert.Equal("deepl-key", reloaded.LoadApiKey(TranslationApiKeyKind.DeepL));
         Assert.Equal("gemini-key", reloaded.LoadApiKey(TranslationApiKeyKind.Gemini));
+        Assert.Equal("groq-key", reloaded.LoadApiKey(TranslationApiKeyKind.Groq));
     }
 
     [Fact]

@@ -57,6 +57,8 @@ dotnet test tests/OmniAudioTranslator.Core.Tests/OmniAudioTranslator.Core.Tests.
 ## Known limitations
 
 - Audio capture works at the process level. If the same executable has multiple windows open, their audio cannot be separated
+- In particular, Chromium-based browsers such as Google Chrome and Microsoft Edge play audio from all tabs and windows in the same browser process, so a single tab cannot be isolated. Audio from other tabs will be mixed in. To translate only one tab, mute the other tabs or use a separate browser profile (a separate process)
+- This is because the Windows audio capture API only supports isolation at the application (process) level. Regular desktop apps such as games, VLC, Spotify, and standalone radio apps run audio in their own processes, so they can be captured separately
 - Speech recognition runs locally, but recognized text is sent to the selected provider for translation
 - The subtitle overlay is displayed on screen (it may not appear above exclusive fullscreen applications)
 
