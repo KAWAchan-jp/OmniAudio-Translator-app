@@ -4,7 +4,7 @@
 
 A Windows desktop app that captures audio from any application (process) in real time, transcribes it locally, translates it, and displays the result as a subtitle overlay.
 
-![Capturing audio from a Chrome tab and showing the translated subtitle overlay](assets/screenshot.png)
+![Capturing audio from a game and showing the translated subtitle overlay](assets/screenshot.png)
 
 - Audio capture: Windows Process Loopback Capture API (`ActivateAudioInterfaceAsync` + `AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK`)
 - Speech recognition: built-in [Whisper.net](https://github.com/sandroandrade/Whisper.net) (no external Python process). The model is downloaded automatically on first launch
